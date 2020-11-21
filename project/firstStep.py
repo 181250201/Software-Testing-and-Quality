@@ -22,9 +22,9 @@ class classDef(object):
     def __eq__(self, other):
         return self.bounds == other.bounds and self.component_class == other.component_class  # 如果两个bounds和class相等则他们相等
 
-error_num = 0
-right_num = 0
-uncertain_num_collect = {}
+error_num = 0 #出现错误的控件坐标,冗余
+right_num = 0 #正确的控件
+uncertain_num_collect = {} #未明确的控件
 def read_data():
     files = os.listdir('./ATMobile2020-1/ATMobile2020-1')
     json_files = {}
@@ -64,7 +64,7 @@ def dfs(root: classDef, data):
     root.children = de_children
 
 
-def de_data(data):  # 解析数据
+def de_data(data):
     root = data['activity']['root']
     root_dis(root)
     root_node = classDef(root['bounds'], root['class'], root['pointer'], None)
@@ -78,13 +78,13 @@ uncertain_num=0
 zero_collect={}
 error_collect={}
 def root_dis(root):
-    global error_num  # 冗余
+    global error_num
     global total_num
     global right_num
-    global uncertain_num  # class不存在
-    global zero  # bounds is zero
+    global uncertain_num
+    global zero
     array_zero = np.array([0, 0, 0, 0])
-    # 以下是判断是否是[0,0,0,0]
+
     if ('parent' in root):
         total_num += 1
         array_a = np.array(root['bounds'])
@@ -93,8 +93,7 @@ def root_dis(root):
         else:
             zero += 1
             zero_collect[root['pointer']] = root["class"]
-            # print(zero_collect)
-    else:  # 不是root
+    else:
         total_num += 1
         array_a = np.array(root['bounds'])
         if ((array_a == array_zero).all() == False):
@@ -103,7 +102,7 @@ def root_dis(root):
             zero += 1
             zero_collect[root['pointer']] = root["class"]
 
-        # 看是不是为负 为负删除
+        # 数据坐标有一些不准确，坐标bounds出现符数和越界数字的需要删除
         left_abscissa = root['bounds'][0]
         left_ordinate = root['bounds'][1]
         right_abscissa = root['bounds'][2]
@@ -115,7 +114,7 @@ def root_dis(root):
             error_num += 1
             error_collect[root['pointer']] = root["class"]
 final_collect={}
-def judgeme(root):
+def judgement(root):
     global uncertain_num_collect
     global error_collect
     global zero_collect
@@ -123,27 +122,25 @@ def judgeme(root):
     global error_num
     global final_collect
     if root.pointer in uncertain_num_collect or root.pointer in error_collect or root.pointer in zero_collect:
-        # print(root.pointer)
         print(uncertain_num_collect)
         print(error_collect)
         print(zero_collect)
-
     else:
         final_collect[root.component_class] = root.bounds
     for child in root.children:
         if child is None:
             continue
-        judgeme(child)
+        judgement(child)
 
 datas = read_data()
-root_nodes = []
+initialNodes = []
 num = 0
 f = open("result.json", 'w', encoding='utf-8')
 final_collects = {}
 for id in datas:
     print(id)
-    root_nodes.append(de_data(datas[id]))
-    judgeme(root_nodes[num])
+    initialNodes.append(de_data(datas[id]))
+    judgement(initialNodes[num])
     print(final_collect)
     final_collects[id] = copy.deepcopy(final_collect)
 json.dump(final_collects, f, ensure_ascii=False)
